@@ -6,7 +6,7 @@
 
 /**
  * @file
- * Implements Resistance meta strategy.
+ * Implements Martingale meta strategy.
  */
 
 // Includes the main code.
