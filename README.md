@@ -1,4 +1,4 @@
-# Strategy Meta Resistance
+# Strategy Meta Martingale
 
 [![Status][gha-image-check-master]][gha-link-check-master]
 [![Status][gha-image-compile-master]][gha-link-compile-master]
@@ -7,8 +7,8 @@
 [![License][license-image]][license-link]
 [![Edit][gh-edit-badge]][gh-edit-link]
 
-Resistance meta strategy to manage another signal's strategy
-based on the current daily/weekly resistance.
+Meta Martingale to manage another signal's strategy
+with extra martingale management logic.
 
 ## Dependencies
 
@@ -22,12 +22,12 @@ based on the current daily/weekly resistance.
 [gh-discuss-link]: https://github.com/EA31337/EA31337-Strategies/discussions
 
 [gh-edit-badge]: https://img.shields.io/badge/GitHub-edit-purple.svg?logo=github
-[gh-edit-link]: https://github.dev/EA31337/Strategy-Meta_Resistance
+[gh-edit-link]: https://github.dev/EA31337/Strategy-Meta_Martingale
 
-[gha-link-check-master]: https://github.com/EA31337/Strategy-Meta_Resistance/actions?query=workflow:Check+branch%3Amaster
-[gha-image-check-master]: https://github.com/EA31337/Strategy-Meta_Resistance/workflows/Check/badge.svg?branch=master
-[gha-link-compile-master]: https://github.com/EA31337/Strategy-Meta_Resistance/actions?query=workflow:Compile+branch%3Amaster
-[gha-image-compile-master]: https://github.com/EA31337/Strategy-Meta_Resistance/workflows/Compile/badge.svg?branch=master
+[gha-link-check-master]: https://github.com/EA31337/Strategy-Meta_Martingale/actions?query=workflow:Check+branch%3Amaster
+[gha-image-check-master]: https://github.com/EA31337/Strategy-Meta_Martingale/workflows/Check/badge.svg?branch=master
+[gha-link-compile-master]: https://github.com/EA31337/Strategy-Meta_Martingale/actions?query=workflow:Compile+branch%3Amaster
+[gha-image-compile-master]: https://github.com/EA31337/Strategy-Meta_Martingale/workflows/Compile/badge.svg?branch=master
 
 [tg-channel-image]: https://img.shields.io/badge/Telegram-join-0088CC.svg?logo=telegram
 [tg-channel-link]: https://t.me/EA31337

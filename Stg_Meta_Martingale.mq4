@@ -10,4 +10,4 @@
  */
 
 // Includes the main code.
-#include "Stg_Meta_Resistance.mq5"
+#include "Stg_Meta_Martingale.mq5"
