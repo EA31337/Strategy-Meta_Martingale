@@ -9,11 +9,11 @@
 
 // User input params.
 INPUT2_GROUP("Meta Martingale strategy: main params");
-INPUT2 ENUM_STRATEGY Meta_Martingale_Strategy = STRAT_OSCILLATOR_CROSS;  // Strategy
+INPUT2 ENUM_STRATEGY Meta_Martingale_Strategy = STRAT_MA_CROSS_PIVOT;  // Strategy
 INPUT2_GROUP("Meta Martingale strategy: common params");
 INPUT2 float Meta_Martingale_LotSize = 0;                // Lot size
 INPUT2 int Meta_Martingale_SignalOpenMethod = 0;         // Signal open method
-INPUT2 float Meta_Martingale_SignalOpenLevel = 0;        // Signal open level
+INPUT2 float Meta_Martingale_SignalOpenLevel = 20;       // Signal open level
 INPUT2 int Meta_Martingale_SignalOpenFilterMethod = 32;  // Signal open filter method
 INPUT2 int Meta_Martingale_SignalOpenFilterTime = 3;     // Signal open filter time (0-31)
 INPUT2 int Meta_Martingale_SignalOpenBoostMethod = 0;    // Signal open boost method
@@ -56,7 +56,7 @@ struct Stg_Meta_Martingale_Params_Defaults : StgParams {
   double GetPriceMin() { return opricemin; }
   // Setters.
   void SetPriceMax(double _value) { opricemax = _value > 0.0 ? _value : 0.0; }
-  void SetPriceMin(double _value) { opricemin = _value != DBL_MAX ? _value : 0.0; }
+  void SetPriceMin(double _value) { opricemin = _value > 0.0 && _value != DBL_MAX ? _value : 0.0; }
 };
 
 class Stg_Meta_Martingale : public Strategy {
@@ -384,7 +384,7 @@ class Stg_Meta_Martingale : public Strategy {
     _method = _method == 0 ? strat.Ptr().Get<int>(STRAT_PARAM_SOM) : _method;
     _shift = _shift == 0 ? strat.Ptr().Get<int>(STRAT_PARAM_SHIFT) : _shift;
     _result &= strat.Ptr().SignalOpen(_cmd, _method, _level, _shift);
-    if (!_result) {
+    if (!_result && strade.Get<bool>(TRADE_STATE_ORDERS_ACTIVE)) {
       _result = true;
       double _level_pips = _level * Chart().GetPipSize();
       switch (_cmd) {
