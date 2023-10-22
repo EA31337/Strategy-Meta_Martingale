@@ -12,7 +12,7 @@ INPUT2_GROUP("Meta Martingale strategy: main params");
 INPUT2 ENUM_STRATEGY Meta_Martingale_Strategy = STRAT_OSCILLATOR_CROSS;  // Strategy
 INPUT2_GROUP("Meta Martingale strategy: common params");
 INPUT2 float Meta_Martingale_LotSize = 0;                // Lot size
-INPUT2 int Meta_Martingale_SignalOpenMethod = 3;         // Signal open method
+INPUT2 int Meta_Martingale_SignalOpenMethod = 0;         // Signal open method
 INPUT2 float Meta_Martingale_SignalOpenLevel = 0;        // Signal open level
 INPUT2 int Meta_Martingale_SignalOpenFilterMethod = 32;  // Signal open filter method
 INPUT2 int Meta_Martingale_SignalOpenFilterTime = 3;     // Signal open filter time (0-31)
@@ -20,7 +20,7 @@ INPUT2 int Meta_Martingale_SignalOpenBoostMethod = 0;    // Signal open boost me
 INPUT2 int Meta_Martingale_SignalCloseMethod = 0;        // Signal close method
 INPUT2 int Meta_Martingale_SignalCloseFilter = 32;       // Signal close filter (-127-127)
 INPUT2 float Meta_Martingale_SignalCloseLevel = 0;       // Signal close level
-INPUT2 int Meta_Martingale_PriceStopMethod = 0;          // Price limit method
+INPUT2 int Meta_Martingale_PriceStopMethod = 1;          // Price limit method
 INPUT2 float Meta_Martingale_PriceStopLevel = 2;         // Price limit level
 INPUT2 int Meta_Martingale_TickFilterMethod = 32;        // Tick filter method (0-255)
 INPUT2 float Meta_Martingale_MaxSpread = 4.0;            // Max spread to trade (in pips)
@@ -32,24 +32,37 @@ INPUT2 int Meta_Martingale_OrderCloseTime = 2880;        // Order close time in 
 // Structs.
 // Defines struct with default user strategy values.
 struct Stg_Meta_Martingale_Params_Defaults : StgParams {
+ protected:
+  double opricemax, opricemin;
+
+ public:
   Stg_Meta_Martingale_Params_Defaults()
       : StgParams(::Meta_Martingale_SignalOpenMethod, ::Meta_Martingale_SignalOpenFilterMethod,
                   ::Meta_Martingale_SignalOpenLevel, ::Meta_Martingale_SignalOpenBoostMethod,
                   ::Meta_Martingale_SignalCloseMethod, ::Meta_Martingale_SignalCloseFilter,
                   ::Meta_Martingale_SignalCloseLevel, ::Meta_Martingale_PriceStopMethod,
                   ::Meta_Martingale_PriceStopLevel, ::Meta_Martingale_TickFilterMethod, ::Meta_Martingale_MaxSpread,
-                  ::Meta_Martingale_Shift) {
+                  ::Meta_Martingale_Shift),
+        opricemax(0.0),
+        opricemin(DBL_MAX) {
     Set(STRAT_PARAM_LS, ::Meta_Martingale_LotSize);
     Set(STRAT_PARAM_OCL, ::Meta_Martingale_OrderCloseLoss);
     Set(STRAT_PARAM_OCP, ::Meta_Martingale_OrderCloseProfit);
     Set(STRAT_PARAM_OCT, ::Meta_Martingale_OrderCloseTime);
     Set(STRAT_PARAM_SOFT, ::Meta_Martingale_SignalOpenFilterTime);
   }
+  // Getters.
+  double GetPriceMax() { return opricemax; }
+  double GetPriceMin() { return opricemin; }
+  // Setters.
+  void SetPriceMax(double _value) { opricemax = _value > 0.0 ? _value : 0.0; }
+  void SetPriceMin(double _value) { opricemin = _value != DBL_MAX ? _value : 0.0; }
 };
 
 class Stg_Meta_Martingale : public Strategy {
  protected:
   Ref<Strategy> strat;
+  Stg_Meta_Martingale_Params_Defaults ssparams;
   Trade strade;
 
  public:
@@ -281,60 +294,10 @@ class Stg_Meta_Martingale : public Strategy {
   }
 
   /**
-   * Gets lots ratio value.
-   *
-   * @returns
-   *   Returns ratio of buys and sells between -1.0 and 1.0.
-   */
-  float GetLotsRatio(int _shift = 0) {
-    float _lots_buys = 0.0f, _lots_sells = 0.0f, _lots_ratio = 0.0f;
-    if (strade.Get<bool>(TRADE_STATE_ORDERS_ACTIVE)) {
-      DictStruct<long, Ref<Order>> _orders_active = strade.GetOrdersActive();
-      Ref<OrderQuery> _oquery_ref;
-      if (_orders_active.Size() > 0) {
-        _oquery_ref = OrderQuery::GetInstance(_orders_active);
-        _lots_buys =
-            _oquery_ref.Ptr()
-                .CalcSumByPropWithCond<ENUM_ORDER_PROPERTY_DOUBLE, ENUM_ORDER_PROPERTY_INTEGER, ENUM_ORDER_TYPE, float>(
-                    ORDER_VOLUME_CURRENT, ORDER_TYPE, ORDER_TYPE_BUY);
-        _lots_sells =
-            _oquery_ref.Ptr()
-                .CalcSumByPropWithCond<ENUM_ORDER_PROPERTY_DOUBLE, ENUM_ORDER_PROPERTY_INTEGER, ENUM_ORDER_TYPE, float>(
-                    ORDER_VOLUME_CURRENT, ORDER_TYPE, ORDER_TYPE_SELL);
-        float _lots_max = fmax(_lots_buys, _lots_sells);
-        _lots_ratio = (1 / _lots_max * _lots_buys) - (1 / _lots_max * _lots_sells);
-      }
-    }
-    return _lots_ratio;
-  }
-
-  /**
-   * Gets martingale ratio value.
-   *
-   * @returns
-   *   Returns martingale ratio between -1.0 and 1.0.
-   */
-  float GetMartingaleRatio(int _shift = 0) {
-    double _res_ratio = 0.0f;
-    Chart *_chart = trade.GetChart();
-    ChartEntry _ohlc_d1_0 = _chart.GetEntry(PERIOD_D1, _shift, _chart.GetSymbol());
-    ChartEntry _ohlc_d1_1 = _chart.GetEntry(PERIOD_D1, _shift + 1, _chart.GetSymbol());
-    double _high0 = _chart.GetHigh(PERIOD_D1, _shift);
-    double _high1 = _chart.GetHigh(PERIOD_D1, _shift + 1);
-    double _low0 = _chart.GetLow(PERIOD_D1, _shift);
-    double _low1 = _chart.GetLow(PERIOD_D1, _shift + 1);
-    double _high = fmax(_high0, _high1);
-    double _low = fmin(_low0, _low1);
-    double _open = _chart.GetOpen(_shift);
-    double _range = (_high - _low);
-    _res_ratio = 2.0 * (_open - _low) / _range - 1.0;
-    return (float)_res_ratio;
-  }
-
-  /**
    * Loads active orders by magic number.
    */
   bool OrdersLoadByMagic() {
+    double _opricemax = 0.0, _opricemin = DBL_MAX;
     ResetLastError();
     int _total_active = TradeStatic::TotalActive();
     unsigned long _magic_no = Get<long>(STRAT_PARAM_ID);  // strade.Get<long>(TRADE_PARAM_MAGIC_NO);
@@ -346,16 +309,22 @@ class Stg_Meta_Martingale : public Strategy {
           unsigned long _ticket = OrderStatic::Ticket();
           if (!_orders_active.KeyExists(_ticket)) {
             Ref<Order> _order = new Order(_ticket);
-            _order.Ptr().Refresh(ORDER_VOLUME_CURRENT);
-            if (_order.Ptr().Get<float>(ORDER_VOLUME_CURRENT) <= 0.0f) {
-              // @fixme
-              _order.Ptr().Set(ORDER_VOLUME_CURRENT, strade.GetChart().GetVolumeMin());
-              ResetLastError();
+            double _order_price_open = _order.Ptr().Get<float>(ORDER_PROP_PRICE_OPEN);
+            if (_order_price_open > _opricemax) {
+              _opricemax = _order_price_open;
+            } else if (_order_price_open < _opricemin) {
+              _opricemin = _order_price_open;
             }
             _orders_active.Set(_ticket, _order);
           }
         }
       }
+    }
+    if (_opricemax != 0.0) {
+      ssparams.SetPriceMax(_opricemax);
+    }
+    if (_opricemin != 0.0) {
+      ssparams.SetPriceMin(_opricemin);
     }
     return GetLastError() == ERR_NO_ERROR;
   }
@@ -415,22 +384,24 @@ class Stg_Meta_Martingale : public Strategy {
     _method = _method == 0 ? strat.Ptr().Get<int>(STRAT_PARAM_SOM) : _method;
     _shift = _shift == 0 ? strat.Ptr().Get<int>(STRAT_PARAM_SHIFT) : _shift;
     _result &= strat.Ptr().SignalOpen(_cmd, _method, _level, _shift);
-    if (_result) {
-      float _lots_ratio = GetLotsRatio(_shift);
-      float _martingale_ratio = GetMartingaleRatio(_shift);
+    if (!_result) {
+      _result = true;
+      double _level_pips = _level * Chart().GetPipSize();
       switch (_cmd) {
         case ORDER_TYPE_BUY:
-          _result &= _lots_ratio != 1.0;
+          _result &= ssparams.GetPriceMin() != 0.0;
+          _result &= strade.GetChart().GetOpenOffer(_cmd) < ssparams.GetPriceMin() - _level_pips;
           if (_result && _method != 0) {
-            if (METHOD(_method, 0)) _result &= _martingale_ratio < 0;
-            if (METHOD(_method, 1)) _result &= _martingale_ratio <= _lots_ratio;
+            // if (METHOD(_method, 0)) _result &= _martingale_ratio < 0;
+            // if (METHOD(_method, 1)) _result &= _martingale_ratio <= _lots_ratio;
           }
           break;
         case ORDER_TYPE_SELL:
-          _result &= _lots_ratio != -1.0;
+          _result &= ssparams.GetPriceMax() != 0.0;
+          _result &= strade.GetChart().GetOpenOffer(_cmd) > ssparams.GetPriceMax() + _level_pips;
           if (_result && _method != 0) {
-            if (METHOD(_method, 0)) _result &= _martingale_ratio > 0;
-            if (METHOD(_method, 1)) _result &= _martingale_ratio >= _lots_ratio;
+            // if (METHOD(_method, 0)) _result &= _martingale_ratio > 0;
+            // if (METHOD(_method, 1)) _result &= _martingale_ratio >= _lots_ratio;
           }
           break;
       }
