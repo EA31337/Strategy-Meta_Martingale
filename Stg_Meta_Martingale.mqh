@@ -9,7 +9,7 @@
 
 // User input params.
 INPUT2_GROUP("Meta Martingale strategy: main params");
-INPUT2 ENUM_STRATEGY Meta_Martingale_Strategy = STRAT_MA_CROSS_PIVOT;  // Strategy
+INPUT2 ENUM_STRATEGY Meta_Martingale_Strategy = STRAT_OSCILLATOR_TREND;  // Strategy
 INPUT3_GROUP("Meta Martingale strategy: common params");
 INPUT3 float Meta_Martingale_LotSize = 0;                // Lot size
 INPUT3 int Meta_Martingale_SignalOpenMethod = 0;         // Signal open method
